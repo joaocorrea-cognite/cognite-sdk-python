@@ -955,12 +955,14 @@ class DatapointsFetcher:
         task_chunk = None
         if chunk_size > 0:
             ts_items_chunk, task_chunk = self._chunk_ids(ts_items[0], tasks, chunk_size)
-            tasks_summary = utils._concurrency.execute_tasks_concurrently(
-                self._fetch_dps_initial_and_return_remaining_tasks,
-                task_chunk, # list of <cognite.client._api.datapoints._DPTask object
-                max_workers=self.client._config.max_workers,
-                ts_items_chunk=ts_items_chunk,
-            )
+            for index, chunk in enumerate(ts_items_chunk):
+                ndp_in_first_task, last_timestamp = self._get_datapoints(task_chunk[index],  None, True, chunk)
+            # tasks_summary = utils._concurrency.execute_tasks_concurrently(
+            #     self._fetch_dps_initial_and_return_remaining_tasks,
+            #     task_chunk, # list of <cognite.client._api.datapoints._DPTask object
+            #     max_workers=self.client._config.max_workers,
+            #     ts_items_chunk=ts_items_chunk,
+            # )
         else:
             # if task_chunk and comes here, it means that it failed to fetch chunked timeseries datapoints
             # and each timeseries in that chunk will be requested individually
@@ -1108,6 +1110,7 @@ class DatapointsFetcher:
             logging.info("do not chunk")
             #logging.info("task type %s", task) # List[_DPTask]
             self._fetch_datapoints(task)
+            return 0, None
 
         #logging.info("result of post : %s", res) # gets full result
         if not res and task_.ignore_unknown_ids:
